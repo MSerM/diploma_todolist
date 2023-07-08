@@ -41,13 +41,10 @@ jobs:
           source: "deploy_ci/docker-compose.yaml,deploy_ci/.env"
           target: "todolist"
           strip_components: 1
-      - name: deploy app
-        uses: appleboy/ssh-action@master
+      - name: start todolist
+        uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          script: |
-            cd todolist
-            docker-compose down
-            docker-compose up -d
+          script: cd todolist && docker compose up -d
