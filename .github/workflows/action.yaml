@@ -25,24 +25,29 @@ jobs:
       TG_TOKEN: ${{ secrets.TG_TOKEN }}
     steps:
       - name: clone code
-        uses: actions/checkout@v2
-      - name: render file
+        uses: actions/checkout@v3.5.2
+      - name: render configs
         run: |
-            mkdir todolist_
-            cat docker-compose-ci.yaml | envsubst > todolist_/docker-compose.yaml
+          mkdir deploy_ci
+          cat docker-compose-ci.yaml | envsubst > deploy_ci/docker-compose.yaml
+          cat .env | envsubst > deploy_ci/.env
       - name: copy files to server
         uses: appleboy/scp-action@v0.1.4
         with:
+          # эти значения надо вписать в секреты Гитхаба
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          source: "todolist_/docker-compose.yaml"
+          source: "deploy_ci/docker-compose.yaml,deploy_ci/.env"
           target: "todolist"
           strip_components: 1
-      - name: start todolist
-        uses: appleboy/ssh-action@v0.1.10
+      - name: deploy app
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           password: ${{ secrets.PASSWORD }}
-          script: cd todolist && docker compose up -d
+          script: |
+            cd todolist
+            docker-compose down
+            docker-compose up -d
