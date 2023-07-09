@@ -1,67 +1,153 @@
-version: '3.8'
+# version: '3.8'
+
+# services:
+#   frontend:
+#     image: sermalenk/skypro-front:lesson-38
+#     restart: always
+#     ports:
+#         - "80:80"
+#     depends_on:
+#       - api
+
+
+#   api:
+#     image: serasorb/todo:dipl
+#     restart: always
+#     # env_file: .env
+#     # environment:
+#     #   POSTGRES_HOST: db
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#       migrations:
+#         condition: service_completed_successfully
+#     # ports:
+#     #   - "8000:8000"
+
+#   bot:
+#     image: serasorb/todo:dipl
+#     restart: always
+#     #env_file: .env
+#     environment:
+#       TG_TOKEN: ${TG_TOKEN}
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     command: python manage.py runbot
+
+
+#   migrations:
+#     image: serasorb/todo:dipl
+
+#     #env_file: .env
+#     depends_on:
+#       db:
+#         condition: service_healthy
+#     command: >
+#       sh -c "python ./manage.py migrate"
+
+#   db:
+#     image: postgres:15.0
+#     volumes:
+#       - ./postgres_data:/var/lib/postgresql/data
+#     environment:
+#       POSTGRES_USER: ${DB_USER}
+#       POSTGRES_PASSWORD: ${DB_PASSWORD}
+#       POSTGRES_DB: ${DB_NAME}
+#     restart: always
+#     # ports:
+#     # - "5445:5432"
+#     healthcheck:
+#       test: pg_isready -U ${DB_USER} -d ${DB_NAME}
+#       timeout: 3s
+#       interval: 4s
+#       retries: 10
+
+# volumes:
+#   postgres_data:
+
+version: "3.9"
 
 services:
-  frontend:
-    image: sermalenk/skypro-front:lesson-38
+  db:
+    image: postgres:15.2
+    container_name: db
+    environment:
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
     restart: always
     ports:
-        - "80:80"
-    depends_on:
-      - api
+      - 5432:5432
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  migrations:
+    image: serasorb/todo:dipl
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      TG_TOKEN: ${TG_TOKEN}
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "python ./manage.py migrate"
 
   api:
     image: serasorb/todo:dipl
+    container_name: api
+    environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SOCIAL_AUTH_VK_OAUTH2_KEY: ${SOCIAL_AUTH_VK_OAUTH2_KEY}
+      SOCIAL_AUTH_VK_OAUTH2_SECRET: ${SOCIAL_AUTH_VK_OAUTH2_SECRET}
+      TG_TOKEN: ${TG_TOKEN}
     restart: always
-    # env_file: .env
-    # environment:
-    #   POSTGRES_HOST: db
     depends_on:
       db:
         condition: service_healthy
       migrations:
         condition: service_completed_successfully
-    # ports:
-    #   - "8000:8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
 
   bot:
     image: serasorb/todo:dipl
-    restart: always
-    #env_file: .env
+    container_name: bot
     environment:
+      DB_HOST: db
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
       TG_TOKEN: ${TG_TOKEN}
-    depends_on:
-      db:
-        condition: service_healthy
-    command: python manage.py runbot
-
-
-  migrations:
-    image: serasorb/todo:dipl
-
-    #env_file: .env
-    depends_on:
-      db:
-        condition: service_healthy
-    command: >
-      sh -c "python ./manage.py migrate"
-
-  db:
-    image: postgres:15.0
-    volumes:
-      - ./postgres_data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
     restart: always
-    # ports:
-    # - "5445:5432"
-    healthcheck:
-      test: pg_isready -U ${DB_USER} -d ${DB_NAME}
-      timeout: 3s
-      interval: 4s
-      retries: 10
+    depends_on:
+      db:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    command: sh -c "python manage.py runbot"
+
+  frontend:
+    image: sermalenk/skypro-front:lesson-38
+    container_name: frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      api:
+        condition: service_started
 
 volumes:
-  postgres_data:
+  pg_data:
