@@ -13,23 +13,23 @@ services:
   api:
     image: serasorb/todo:dipl
     restart: always
-    env_file: .env
-    environment:
-      POSTGRES_HOST: db
+    # env_file: .env
+    # environment:
+    #   POSTGRES_HOST: db
     depends_on:
       db:
         condition: service_healthy
       migrations:
         condition: service_completed_successfully
-    ports:
-      - "8000:8000"
+    # ports:
+    #   - "8000:8000"
 
   bot:
     image: serasorb/todo:dipl
     restart: always
-    env_file: .env
+    #env_file: .env
     environment:
-      POSTGRES_HOST: db
+      TG_TOKEN: ${TG_TOKEN}
     depends_on:
       db:
         condition: service_healthy
@@ -39,7 +39,7 @@ services:
   migrations:
     image: serasorb/todo:dipl
 
-    env_file: .env
+    #env_file: .env
     depends_on:
       db:
         condition: service_healthy
@@ -55,8 +55,8 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     restart: always
-    ports:
-    - "5445:5432"
+    # ports:
+    # - "5445:5432"
     healthcheck:
       test: pg_isready -U ${DB_USER} -d ${DB_NAME}
       timeout: 3s
